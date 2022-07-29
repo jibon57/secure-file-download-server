@@ -1,5 +1,7 @@
 *.log
 .DS_Store
+config.yaml
+.air.toml
 
 .idea/
 log/
