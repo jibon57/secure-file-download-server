@@ -106,6 +106,11 @@ func HandleDeleteFile(c *fiber.Ctx) error {
 		}
 	}
 
+	if AppCnf.Compress {
+		// silently delete compressed file
+		_ = os.Remove(file + ".fiber.gz")
+	}
+
 	return c.JSON(fiber.Map{
 		"status": true,
 		"msg":    "file deleted",
