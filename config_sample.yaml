@@ -6,6 +6,6 @@ port: 81
 api_key: API3Q37hsqU
 api_secret: zW8EyC44kI4kLKeAcSOdYsw6BOy9mu
 ## It can be any local path
-path: ./test-dir
+path: ./examples/files
 debug: false
 compress: true

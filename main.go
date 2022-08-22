@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -44,7 +43,7 @@ func main() {
 }
 
 func readYaml(filename string) error {
-	yamlFile, err := ioutil.ReadFile(filename)
+	yamlFile, err := os.ReadFile(filename)
 
 	if err != nil {
 		return err
