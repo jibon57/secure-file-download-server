@@ -20,12 +20,15 @@ func Test_Main(t *testing.T) {
 	_, err := os.Lstat(fmt.Sprintf("%s/%s", AppCnf.Path, file))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
+			err = os.MkdirAll(AppCnf.Path, os.ModePerm)
+			if err != nil {
+				t.Errorf("can't create directory %s", err.Error())
+			}
 			emptyFile, err := os.Create(fmt.Sprintf("%s/%s", AppCnf.Path, file))
 			if err != nil {
 				t.Errorf("can't create test file %s", err.Error())
 			}
 			_ = emptyFile.Close()
-
 		}
 	}
 
