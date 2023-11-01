@@ -19,8 +19,8 @@ func main() {
 
 	cl := jwt.Claims{
 		Issuer:    apiKey,
-		NotBefore: jwt.NewNumericDate(time.Now()),
-		Expiry:    jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
+		NotBefore: jwt.NewNumericDate(time.Now().UTC()),
+		Expiry:    jwt.NewNumericDate(time.Now().UTC().Add(time.Minute * 30)),
 		Subject:   path,
 	}
 

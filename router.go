@@ -128,7 +128,7 @@ func verifyToken(token string) (string, int, error) {
 		return "", fiber.StatusUnauthorized, err
 	}
 
-	if err = out.Validate(jwt.Expected{Issuer: AppCnf.ApiKey, Time: time.Now()}); err != nil {
+	if err = out.Validate(jwt.Expected{Issuer: AppCnf.ApiKey, Time: time.Now().UTC()}); err != nil {
 		return "", fiber.StatusUnauthorized, err
 	}
 
