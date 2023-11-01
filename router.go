@@ -13,7 +13,9 @@ import (
 )
 
 func Router() *fiber.App {
-	app := fiber.New(fiber.Config{})
+	app := fiber.New(fiber.Config{
+		AppName: "File download server version: " + Version,
+	})
 	if AppCnf.Debug {
 		app.Use(logger.New())
 	}
