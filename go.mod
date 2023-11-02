@@ -1,10 +1,10 @@
 module github.com/jibon57/secure-file-download-server
 
-go 1.18
+go 1.21
 
 require (
+	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/gofiber/fiber/v2 v2.50.0
-	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
