@@ -91,14 +91,12 @@ func HandleDeleteFile(c *fiber.Ctx) error {
 	}
 
 	file := fmt.Sprintf("%s/%s", AppCnf.Path, *req.FilePath)
-	err = os.Remove(file)
-
+	f, err := os.Stat(file)
 	if err != nil {
-		if os.IsNotExist(err) {
-			ms := strings.SplitN(err.Error(), "/", -1)
+		if errors.Is(err, err.(*os.PathError)) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"status": false,
-				"msg":    ms[len(ms)-1],
+				"msg":    *req.FilePath + " does not exist",
 			})
 		} else {
 			return c.Status(fiber.StatusNotAcceptable).JSON(fiber.Map{
@@ -108,9 +106,34 @@ func HandleDeleteFile(c *fiber.Ctx) error {
 		}
 	}
 
+	if f.IsDir() {
+		return c.Status(fiber.StatusNotAcceptable).JSON(fiber.Map{
+			"status": false,
+			"msg":    *req.FilePath + " is a directory, not allow to delete directory",
+		})
+	}
+
+	err = os.Remove(file)
+	if err != nil {
+		return c.Status(fiber.StatusNotAcceptable).JSON(fiber.Map{
+			"status": false,
+			"msg":    err.Error(),
+		})
+	}
+
 	if AppCnf.Compress {
 		// silently delete compressed file
 		_ = os.Remove(file + ".fiber.gz")
+	}
+
+	if AppCnf.DeleteEmptyDir {
+		dir := strings.Replace(file, "/"+f.Name(), "", 1)
+		if dir != AppCnf.Path {
+			empty, err := IsDirEmpty(dir)
+			if err == nil && empty {
+				_ = os.Remove(dir)
+			}
+		}
 	}
 
 	return c.JSON(fiber.Map{

@@ -9,3 +9,4 @@ api_secret: zW8EyC44kI4kLKeAcSOdYsw6BOy9mu
 path: ./examples/files
 debug: false
 compress: false
+delete_empty_dir: false
