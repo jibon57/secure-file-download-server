@@ -10,8 +10,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Set go version
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '>=1.21'
+          go-version-file: "go.mod"
       - name: Run Test
         run: go test -v
