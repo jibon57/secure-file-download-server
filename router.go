@@ -3,7 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -143,7 +144,7 @@ func HandleDeleteFile(c *fiber.Ctx) error {
 }
 
 func verifyToken(token string) (string, int, error) {
-	tok, err := jwt.ParseSigned(token)
+	tok, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{jose.HS256})
 	if err != nil {
 		return "", fiber.StatusUnauthorized, err
 	}

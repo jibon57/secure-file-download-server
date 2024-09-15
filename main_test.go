@@ -3,8 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/go-jose/go-jose/v3"
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -27,6 +27,7 @@ func Test_Main(t *testing.T) {
 			emptyFile, err := os.Create(fmt.Sprintf("%s/%s", AppCnf.Path, file))
 			if err != nil {
 				t.Errorf("can't create test file %s", err.Error())
+				return
 			}
 			_ = emptyFile.Close()
 		}
@@ -116,7 +117,7 @@ func genToken(file string) (string, error) {
 		Subject:   file,
 	}
 
-	token, err := jwt.Signed(sig).Claims(cl).CompactSerialize()
+	token, err := jwt.Signed(sig).Claims(cl).Serialize()
 	if err != nil {
 		return "", err
 	}
