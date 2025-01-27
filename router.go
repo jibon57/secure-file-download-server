@@ -8,7 +8,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"io/fs"
+	"log"
 	"os"
+	"path"
 	"strings"
 	"time"
 )
@@ -34,18 +37,12 @@ func HandleDownloadFile(c *fiber.Ctx) error {
 	token := c.Params("token")
 
 	if len(token) == 0 {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"status": false,
-			"msg":    "token require or invalid url",
-		})
+		return sendResponse(c, fiber.StatusUnauthorized, false, "token require or invalid url")
 	}
 
 	file, status, err := verifyToken(token)
 	if err != nil {
-		return c.Status(status).JSON(fiber.Map{
-			"status": false,
-			"msg":    err.Error(),
-		})
+		return sendResponse(c, status, false, err.Error())
 	}
 
 	c.Attachment(file)
@@ -62,64 +59,57 @@ func HandleDeleteFile(c *fiber.Ctx) error {
 	secret := c.Get("API-SECRET")
 
 	if apiKey == "" || secret == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"status": false,
-			"msg":    "Auth header information are missing",
-		})
+		return sendResponse(c, fiber.StatusUnauthorized, false, "Auth header information are missing")
 	}
 
 	if apiKey != AppCnf.ApiKey || secret != AppCnf.ApiSecret {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"status": false,
-			"msg":    "Auth header information didn't match",
-		})
+		return sendResponse(c, fiber.StatusUnauthorized, false, "Auth header information didn't match")
 	}
 
 	req := new(DeleteFileReq)
 	err := c.BodyParser(req)
 	if err != nil {
-		return c.Status(fiber.StatusNotAcceptable).JSON(fiber.Map{
-			"status": false,
-			"msg":    err.Error(),
-		})
+		return sendResponse(c, fiber.StatusNotAcceptable, false, err.Error())
 	}
 
 	if req.FilePath == nil {
-		return c.Status(fiber.StatusNotAcceptable).JSON(fiber.Map{
-			"status": false,
-			"msg":    "file_path value require",
-		})
+		return sendResponse(c, fiber.StatusNotAcceptable, false, "file_path value require")
 	}
 
 	file := fmt.Sprintf("%s/%s", AppCnf.Path, *req.FilePath)
 	f, err := os.Stat(file)
 	if err != nil {
-		if errors.Is(err, err.(*os.PathError)) {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"status": false,
-				"msg":    *req.FilePath + " does not exist",
-			})
+		var pathError *fs.PathError
+		if errors.As(err, &pathError) {
+			return sendResponse(c, fiber.StatusNotFound, false, *req.FilePath+" does not exist")
 		} else {
-			return c.Status(fiber.StatusNotAcceptable).JSON(fiber.Map{
-				"status": false,
-				"msg":    err.Error(),
-			})
+			return sendResponse(c, fiber.StatusNotAcceptable, false, err.Error())
 		}
 	}
 
 	if f.IsDir() {
-		return c.Status(fiber.StatusNotAcceptable).JSON(fiber.Map{
-			"status": false,
-			"msg":    *req.FilePath + " is a directory, not allow to delete directory",
-		})
+		return sendResponse(c, fiber.StatusNotAcceptable, false, *req.FilePath+" is a directory, not allow to delete directory")
 	}
 
-	err = os.Remove(file)
-	if err != nil {
-		return c.Status(fiber.StatusNotAcceptable).JSON(fiber.Map{
-			"status": false,
-			"msg":    err.Error(),
-		})
+	if AppCnf.EnableDelFileBackup {
+		// first with the video file
+		toFile := path.Join(AppCnf.DelFileBackupPath, f.Name())
+		err := os.Rename(file, toFile)
+		if err != nil {
+			log.Println(err)
+			return sendResponse(c, fiber.StatusNotAcceptable, false, err.Error())
+		}
+
+		// otherwise during cleanup will be hard to detect
+		newTime := time.Now()
+		if err := os.Chtimes(toFile, newTime, newTime); err != nil {
+			log.Println("Failed to update file modification time:", err)
+		}
+	} else {
+		err = os.Remove(file)
+		if err != nil {
+			return sendResponse(c, fiber.StatusNotAcceptable, false, err.Error())
+		}
 	}
 
 	if AppCnf.Compress {
@@ -130,17 +120,13 @@ func HandleDeleteFile(c *fiber.Ctx) error {
 	if AppCnf.DeleteEmptyDir {
 		dir := strings.Replace(file, "/"+f.Name(), "", 1)
 		if dir != AppCnf.Path {
-			empty, err := IsDirEmpty(dir)
-			if err == nil && empty {
+			if empty, err := IsDirEmpty(dir); err == nil && empty {
 				_ = os.Remove(dir)
 			}
 		}
 	}
 
-	return c.JSON(fiber.Map{
-		"status": true,
-		"msg":    "file deleted",
-	})
+	return sendResponse(c, fiber.StatusOK, true, "file deleted")
 }
 
 func verifyToken(token string) (string, int, error) {
@@ -167,4 +153,11 @@ func verifyToken(token string) (string, int, error) {
 	}
 
 	return file, fiber.StatusOK, nil
+}
+
+func sendResponse(c *fiber.Ctx, statusCode int, status bool, msg string) error {
+	return c.Status(statusCode).JSON(fiber.Map{
+		"status": status,
+		"msg":    msg,
+	})
 }

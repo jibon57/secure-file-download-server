@@ -19,11 +19,18 @@ func main() {
 
 	err := readYaml(cnfFile)
 	if err != nil {
-		log.Panicln(err)
+		log.Fatalln(err)
 	}
 
-	router := Router()
+	// create necessary dirs
+	err = createOrUpdateDirs()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	// start scheduler
+	go startScheduler()
 
+	router := Router()
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
