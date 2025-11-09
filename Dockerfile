@@ -1,4 +1,4 @@
-FROM golang:1.25 as builder
+FROM golang:1.25 AS builder
 
 ARG TARGETPLATFORM
 ARG TARGETARCH
@@ -12,10 +12,10 @@ COPY go.sum go.sum
 RUN go mod download
 
 # Copy the go source
-COPY internal ./
-COPY main.go ./
+COPY internal/ internal/
+COPY main.go main.go
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags '-w -s -buildid=' -a -o download-server main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH GO111MODULE=on go build -trimpath -ldflags '-w -s -buildid=' -a -o download-server main.go
 
 FROM alpine
 
