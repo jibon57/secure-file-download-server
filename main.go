@@ -29,12 +29,13 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	// start scheduler
-	go internal.StartScheduler()
 
 	router := internal.Router(Version)
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	// start scheduler
+	go internal.StartScheduler(sigChan)
 
 	go func() {
 		sig := <-sigChan
@@ -43,6 +44,7 @@ func main() {
 		if err != nil {
 			log.Fatalln(err)
 		}
+		log.Println("server shutdown")
 	}()
 
 	err = router.Listen(fmt.Sprintf(":%d", internal.AppCnf.Port))

@@ -7,20 +7,14 @@ import (
 	"time"
 )
 
-var closeTicker chan bool
-
-func StartScheduler() {
-	closeTicker = make(chan bool)
+func StartScheduler(shutdown chan os.Signal) {
 	hourlyChecker := time.NewTicker(1 * time.Hour)
-
-	defer func() {
-		hourlyChecker.Stop()
-		closeTicker <- true
-	}()
+	defer hourlyChecker.Stop()
 
 	for {
 		select {
-		case <-closeTicker:
+		case <-shutdown:
+			log.Println("Stopping scheduler")
 			return
 		case <-hourlyChecker.C:
 			checkDelFileBackupPath()

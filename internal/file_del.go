@@ -1,13 +1,10 @@
 package internal
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
 	"log"
 	"os"
 	"path"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -40,15 +37,14 @@ func HandleDeleteFile(c *fiber.Ctx) error {
 		return sendResponse(c, fiber.StatusNotAcceptable, false, "file_path value require")
 	}
 
-	file := fmt.Sprintf("%s/%s", AppCnf.Path, *req.FilePath)
+	file := path.Join(AppCnf.Path, *req.FilePath)
 	f, err := os.Stat(file)
 	if err != nil {
-		var pathError *fs.PathError
-		if errors.As(err, &pathError) {
-			return sendResponse(c, fiber.StatusNotFound, false, *req.FilePath+" does not exist")
-		} else {
-			return sendResponse(c, fiber.StatusNotAcceptable, false, err.Error())
+		if os.IsNotExist(err) {
+			return sendResponse(c, fiber.StatusNotFound, false, fmt.Sprintf("%s does not exist", *req.FilePath))
 		}
+		log.Println("Error stating file:", err)
+		return sendResponse(c, fiber.StatusInternalServerError, false, "Error checking file status")
 	}
 
 	if f.IsDir() {
@@ -56,15 +52,13 @@ func HandleDeleteFile(c *fiber.Ctx) error {
 	}
 
 	if AppCnf.EnableDelFileBackup {
-		// first with the video file
 		toFile := path.Join(AppCnf.DelFileBackupPath, f.Name())
 		err := os.Rename(file, toFile)
 		if err != nil {
-			log.Println(err)
-			return sendResponse(c, fiber.StatusNotAcceptable, false, err.Error())
+			log.Println("Failed to move file for backup:", err)
+			return sendResponse(c, fiber.StatusInternalServerError, false, "Failed to backup file")
 		}
 
-		// otherwise during cleanup will be hard to detect
 		newTime := time.Now()
 		if err := os.Chtimes(toFile, newTime, newTime); err != nil {
 			log.Println("Failed to update file modification time:", err)
@@ -72,7 +66,8 @@ func HandleDeleteFile(c *fiber.Ctx) error {
 	} else {
 		err = os.Remove(file)
 		if err != nil {
-			return sendResponse(c, fiber.StatusNotAcceptable, false, err.Error())
+			log.Println("Failed to delete file:", err)
+			return sendResponse(c, fiber.StatusInternalServerError, false, "Failed to delete file")
 		}
 	}
 
@@ -82,7 +77,7 @@ func HandleDeleteFile(c *fiber.Ctx) error {
 	}
 
 	if AppCnf.DeleteEmptyDir {
-		dir := strings.Replace(file, "/"+f.Name(), "", 1)
+		dir := path.Dir(file)
 		if dir != AppCnf.Path {
 			if empty, err := IsDirEmpty(dir); err == nil && empty {
 				_ = os.Remove(dir)

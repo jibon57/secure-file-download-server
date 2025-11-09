@@ -3,28 +3,18 @@ package internal
 import (
 	"os"
 	"path"
-	"strings"
 
+	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/gofiber/fiber/v2"
 )
 
 func HandleDownloadFile(c *fiber.Ctx) error {
-	token := c.Params("token")
+	claims := c.Locals("claims").(*jwt.Claims)
 
-	if len(token) == 0 {
-		return sendResponse(c, fiber.StatusUnauthorized, false, "token require or invalid url")
-	}
-
-	out, err := verifyToken(token)
-	if err != nil {
-		return sendResponse(c, fiber.StatusUnauthorized, false, err.Error())
-	}
-
-	filePath := path.Join(AppCnf.Path, out.Subject)
+	filePath := path.Join(AppCnf.Path, claims.Subject)
 	file, err := os.Lstat(filePath)
 	if err != nil {
-		ms := strings.SplitN(err.Error(), "/", -1)
-		return sendResponse(c, fiber.StatusNotFound, false, ms[len(ms)-1])
+		return sendResponse(c, fiber.StatusNotFound, false, "file not found")
 	}
 
 	c.Attachment(file.Name())
@@ -32,18 +22,9 @@ func HandleDownloadFile(c *fiber.Ctx) error {
 }
 
 func HandleServeFile(c *fiber.Ctx) error {
-	token := c.Params("token")
+	claims := c.Locals("claims").(*jwt.Claims)
 
-	if len(token) == 0 {
-		return sendResponse(c, fiber.StatusUnauthorized, false, "token require or invalid url")
-	}
-
-	out, err := verifyToken(token)
-	if err != nil {
-		return sendResponse(c, fiber.StatusUnauthorized, false, err.Error())
-	}
-
-	c.Attachment(path.Base(out.Subject))
-	c.Set("X-Accel-Redirect", path.Join(AppCnf.NginxFileServePath, out.Subject))
+	c.Attachment(path.Base(claims.Subject))
+	c.Set("X-Accel-Redirect", path.Join(AppCnf.NginxFileServePath, claims.Subject))
 	return c.SendStatus(fiber.StatusOK)
 }

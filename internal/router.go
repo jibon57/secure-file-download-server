@@ -21,8 +21,8 @@ func Router(version string) *fiber.App {
 
 	// format: http://ip:port/download/token
 	// make sure token is urlencoded
-	app.Get("/download/:token", HandleDownloadFile)
-	app.Get("/serveFile/:token", HandleServeFile)
+	app.Get("/download/:token", VerifyTokenMiddleware, HandleDownloadFile)
+	app.Get("/serveFile/:token", VerifyTokenMiddleware, HandleServeFile)
 	app.Post("/delete", HandleDeleteFile)
 
 	return app
