@@ -46,7 +46,12 @@ func main() {
 		sig := <-sigChan
 		ctx.Done()
 		log.Println("exit requested, shutting down", "signal", sig)
-		router.ShutdownWithTimeout(time.Second)
+
+		err := router.ShutdownWithTimeout(time.Second)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		log.Println("server shutdown")
 	}()
 
 	err = router.Listen(fmt.Sprintf(":%d", internal.AppCnf.Port))
