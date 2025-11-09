@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jibon57/secure-file-download-server/internal"
 	"gopkg.in/yaml.v3"
@@ -34,17 +36,17 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// start scheduler
-	go internal.StartScheduler(sigChan)
+	go internal.StartScheduler(ctx)
 
 	go func() {
 		sig := <-sigChan
+		ctx.Done()
 		log.Println("exit requested, shutting down", "signal", sig)
-		err = router.Shutdown()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		log.Println("server shutdown")
+		router.ShutdownWithTimeout(time.Second)
 	}()
 
 	err = router.Listen(fmt.Sprintf(":%d", internal.AppCnf.Port))

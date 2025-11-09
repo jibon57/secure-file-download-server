@@ -1,19 +1,20 @@
 package internal
 
 import (
+	"context"
 	"log"
 	"os"
 	"path"
 	"time"
 )
 
-func StartScheduler(shutdown chan os.Signal) {
+func StartScheduler(ctx context.Context) {
 	hourlyChecker := time.NewTicker(1 * time.Hour)
 	defer hourlyChecker.Stop()
 
 	for {
 		select {
-		case <-shutdown:
+		case <-ctx.Done():
 			log.Println("Stopping scheduler")
 			return
 		case <-hourlyChecker.C:
