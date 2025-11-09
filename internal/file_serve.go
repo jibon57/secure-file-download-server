@@ -1,8 +1,8 @@
 package internal
 
 import (
-	"fmt"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -20,16 +20,15 @@ func HandleDownloadFile(c *fiber.Ctx) error {
 		return sendResponse(c, fiber.StatusUnauthorized, false, err.Error())
 	}
 
-	file := fmt.Sprintf("%s/%s", AppCnf.Path, out.Subject)
-	_, err = os.Lstat(file)
-
+	filePath := path.Join(AppCnf.Path, out.Subject)
+	file, err := os.Lstat(filePath)
 	if err != nil {
 		ms := strings.SplitN(err.Error(), "/", -1)
 		return sendResponse(c, fiber.StatusNotFound, false, ms[len(ms)-1])
 	}
 
-	c.Attachment(file)
-	return c.SendFile(file, AppCnf.Compress)
+	c.Attachment(file.Name())
+	return c.SendFile(filePath, AppCnf.Compress)
 }
 
 func HandleServeFile(c *fiber.Ctx) error {
@@ -43,9 +42,8 @@ func HandleServeFile(c *fiber.Ctx) error {
 	if err != nil {
 		return sendResponse(c, fiber.StatusUnauthorized, false, err.Error())
 	}
-	ms := strings.SplitN(out.Subject, "/", -1)
 
-	c.Attachment(ms[len(ms)-1])
-	c.Set("X-Accel-Redirect", fmt.Sprintf("%s%s", AppCnf.NginxFileServePath, out.Subject))
+	c.Attachment(path.Base(out.Subject))
+	c.Set("X-Accel-Redirect", path.Join(AppCnf.NginxFileServePath, out.Subject))
 	return c.SendStatus(fiber.StatusOK)
 }
