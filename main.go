@@ -2,14 +2,16 @@ package main
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/jibon57/secure-file-download-server/internal"
+	"gopkg.in/yaml.v3"
 )
 
-var AppCnf AppConfig
+const Version = "1.3.0"
 
 func main() {
 	cnfFile := "config.yaml"
@@ -23,14 +25,14 @@ func main() {
 	}
 
 	// create necessary dirs
-	err = createOrUpdateDirs()
+	err = internal.CreateOrUpdateDirs()
 	if err != nil {
 		log.Fatalln(err)
 	}
 	// start scheduler
-	go startScheduler()
+	go internal.StartScheduler()
 
-	router := Router()
+	router := internal.Router(Version)
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
@@ -43,7 +45,7 @@ func main() {
 		}
 	}()
 
-	err = router.Listen(fmt.Sprintf(":%d", AppCnf.Port))
+	err = router.Listen(fmt.Sprintf(":%d", internal.AppCnf.Port))
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -56,7 +58,7 @@ func readYaml(filename string) error {
 		return err
 	}
 
-	err = yaml.Unmarshal(yamlFile, &AppCnf)
+	err = yaml.Unmarshal(yamlFile, &internal.AppCnf)
 	if err != nil {
 		return err
 	}

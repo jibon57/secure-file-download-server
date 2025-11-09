@@ -8,3 +8,4 @@ log/
 build/
 dist/
 tmp/
+build.sh

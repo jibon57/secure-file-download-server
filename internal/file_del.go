@@ -1,53 +1,17 @@
-package main
+package internal
 
 import (
 	"errors"
 	"fmt"
-	"github.com/go-jose/go-jose/v4"
-	"github.com/go-jose/go-jose/v4/jwt"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
 	"io/fs"
 	"log"
 	"os"
 	"path"
 	"strings"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
 )
-
-func Router() *fiber.App {
-	app := fiber.New(fiber.Config{
-		AppName: "File download server version: " + Version,
-	})
-	if AppCnf.Debug {
-		app.Use(logger.New())
-	}
-	app.Use(recover.New())
-
-	// format: http://ip:port/download/token
-	// make sure token is urlencoded
-	app.Get("/download/:token", HandleDownloadFile)
-	app.Post("/delete", HandleDeleteFile)
-
-	return app
-}
-
-func HandleDownloadFile(c *fiber.Ctx) error {
-	token := c.Params("token")
-
-	if len(token) == 0 {
-		return sendResponse(c, fiber.StatusUnauthorized, false, "token require or invalid url")
-	}
-
-	file, status, err := verifyToken(token)
-	if err != nil {
-		return sendResponse(c, status, false, err.Error())
-	}
-
-	c.Attachment(file)
-	return c.SendFile(file, AppCnf.Compress)
-}
 
 type DeleteFileReq struct {
 	FilePath *string `json:"file_path,omitempty" xml:"file_path,omitempty" form:"file_path,omitempty"`
@@ -127,37 +91,4 @@ func HandleDeleteFile(c *fiber.Ctx) error {
 	}
 
 	return sendResponse(c, fiber.StatusOK, true, "file deleted")
-}
-
-func verifyToken(token string) (string, int, error) {
-	tok, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{jose.HS256})
-	if err != nil {
-		return "", fiber.StatusUnauthorized, err
-	}
-
-	out := jwt.Claims{}
-	if err = tok.Claims([]byte(AppCnf.ApiSecret), &out); err != nil {
-		return "", fiber.StatusUnauthorized, err
-	}
-
-	if err = out.Validate(jwt.Expected{Issuer: AppCnf.ApiKey, Time: time.Now().UTC()}); err != nil {
-		return "", fiber.StatusUnauthorized, err
-	}
-
-	file := fmt.Sprintf("%s/%s", AppCnf.Path, out.Subject)
-	_, err = os.Lstat(file)
-
-	if err != nil {
-		ms := strings.SplitN(err.Error(), "/", -1)
-		return "", fiber.StatusNotFound, errors.New(ms[len(ms)-1])
-	}
-
-	return file, fiber.StatusOK, nil
-}
-
-func sendResponse(c *fiber.Ctx, statusCode int, status bool, msg string) error {
-	return c.Status(statusCode).JSON(fiber.Map{
-		"status": status,
-		"msg":    msg,
-	})
 }

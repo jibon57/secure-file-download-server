@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"os"
@@ -11,6 +11,7 @@ type AppConfig struct {
 	ApiKey                string        `yaml:"api_key"`
 	ApiSecret             string        `yaml:"api_secret"`
 	Path                  string        `yaml:"path"`
+	NginxFileServePath    string        `yaml:"nginx_file_serve_path"`
 	Debug                 bool          `yaml:"debug"`
 	Compress              bool          `yaml:"compress"`
 	DeleteEmptyDir        bool          `yaml:"delete_empty_dir"`
@@ -19,7 +20,9 @@ type AppConfig struct {
 	DelFileBackupDuration time.Duration `yaml:"del_file_backup_duration"`
 }
 
-func createOrUpdateDirs() error {
+var AppCnf AppConfig
+
+func CreateOrUpdateDirs() error {
 	err := os.MkdirAll(AppCnf.Path, 0755)
 	if err != nil {
 		return err

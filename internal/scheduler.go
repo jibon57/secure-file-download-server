@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"log"
@@ -9,7 +9,7 @@ import (
 
 var closeTicker chan bool
 
-func startScheduler() {
+func StartScheduler() {
 	closeTicker = make(chan bool)
 	hourlyChecker := time.NewTicker(1 * time.Hour)
 

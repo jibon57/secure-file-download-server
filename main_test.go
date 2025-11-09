@@ -3,28 +3,30 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/go-jose/go-jose/v4"
-	"github.com/go-jose/go-jose/v4/jwt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
+	"github.com/jibon57/secure-file-download-server/internal"
 )
 
 func Test_Main(t *testing.T) {
 	test_readYaml(t)
 	file := "test.txt"
 
-	_, err := os.Lstat(fmt.Sprintf("%s/%s", AppCnf.Path, file))
+	_, err := os.Lstat(fmt.Sprintf("%s/%s", internal.AppCnf.Path, file))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			err = createOrUpdateDirs()
+			err = internal.CreateOrUpdateDirs()
 			if err != nil {
 				t.Errorf("can't create directory %s", err.Error())
 			}
-			emptyFile, err := os.Create(fmt.Sprintf("%s/%s", AppCnf.Path, file))
+			emptyFile, err := os.Create(fmt.Sprintf("%s/%s", internal.AppCnf.Path, file))
 			if err != nil {
 				t.Errorf("can't create test file %s", err.Error())
 				return
@@ -37,7 +39,6 @@ func Test_Main(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
 	tests := []struct {
 		name   string
 		method string
@@ -57,15 +58,15 @@ func Test_Main(t *testing.T) {
 		},
 	}
 
-	r := Router()
+	r := internal.Router(Version)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(tt.method, tt.route, strings.NewReader(tt.body))
 			if tt.method == http.MethodPost {
 				req.Header.Set("content-type", "application/json")
-				req.Header.Set("API-KEY", AppCnf.ApiKey)
-				req.Header.Set("API-SECRET", AppCnf.ApiSecret)
+				req.Header.Set("API-KEY", internal.AppCnf.ApiKey)
+				req.Header.Set("API-SECRET", internal.AppCnf.ApiSecret)
 			}
 
 			res, err := r.Test(req)
@@ -106,12 +107,12 @@ func test_readYaml(t *testing.T) {
 }
 
 func genToken(file string) (string, error) {
-	sig, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: []byte(AppCnf.ApiSecret)}, (&jose.SignerOptions{}).WithType("JWT"))
+	sig, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: []byte(internal.AppCnf.ApiSecret)}, (&jose.SignerOptions{}).WithType("JWT"))
 	if err != nil {
 		return "", err
 	}
 	cl := jwt.Claims{
-		Issuer:    AppCnf.ApiKey,
+		Issuer:    internal.AppCnf.ApiKey,
 		NotBefore: jwt.NewNumericDate(time.Now().UTC()),
 		Expiry:    jwt.NewNumericDate(time.Now().UTC().Add(time.Minute * 30)),
 		Subject:   file,

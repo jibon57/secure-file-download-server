@@ -7,6 +7,7 @@ api_key: API3Q37hsqU
 api_secret: hZBTzWScAVPgVVasZshXwwypxoDzVLeU45xb
 ## It can be any local path
 path: ./examples/files
+nginx_file_serve_path: "/examples/"
 debug: false
 compress: false
 delete_empty_dir: false
