@@ -12,7 +12,8 @@ COPY go.sum go.sum
 RUN go mod download
 
 # Copy the go source
-COPY *.go ./
+COPY internal ./
+COPY main.go ./
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH GO111MODULE=on go build -ldflags '-w -s -buildid=' -a -o download-server main.go
 
